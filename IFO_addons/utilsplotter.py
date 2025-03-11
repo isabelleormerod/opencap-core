@@ -5,17 +5,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import iirnotch, butter, filtfilt
 
-mot_repo='E:/Open_cap/'
-session_IDs=['Gabriella Miles','Margo Bellamy','Rob Ballentyne','Aman Kukreja','Adam McClenaghan','Varun Ramanan','Harrison Mogg-Wells','Jonathan Erksine','Owen Peckham','Jonny Raines']
-session_IDs=['Rob Ballentyne']
+mot_repo='E:/Rowing_Dataset'
+Participant_number=1
+session_IDs=['Participant 1']
 
-small_handle_trials=['Small_handle_trial_1','Small_handle_trial_2','Small_handle_trial_3','Small_handle_trial_4']
-big_handle_trials=['Big_handle_trial_1','Big_handle_trial_2','Big_handle_trial_3','Big_handle_trial_4']
-# session_IDs=['Adam McClenaghan']
-# small_handle_trials=['Small_handle_trial_2']
-# big_handle_trials=['Big_handle_trial_2']
+
+Low_trials=['Low1','Low2']
+Medium_trials=['Medium1','Medium2']
+High_trials=['High1','High2']
+
+
 results = pd.DataFrame()
-trials = list(zip(small_handle_trials, big_handle_trials))  # Convert to list to allow multiple iterations
+trials = list(zip(Low_trials,Medium_trials,High_trials))  # Convert to list to allow multiple iterations
 
 
 # def find_trial_IDs(session_IDs, trials, base_path):

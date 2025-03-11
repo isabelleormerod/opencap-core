@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import iirnotch, butter, filtfilt
+from scipy.signal import find_peaks
 import chardet
 
 def process_text_file(file_name, sampling_frequency=1000):
@@ -50,22 +51,22 @@ def rms_filter(data, frame=500):
     )
     return df['RMS'].values
 
-def calculate_global_min_max(file_small, file_big):
+def calculate_global_min_max(file):
     """
     Calculate the global minimum and maximum across RMS_left and RMS_right
     in both small and big datasets.
     """
     # Read the small and big datasets
-    small_data = pd.read_csv(file_small)
-    big_data = pd.read_csv(file_big)
+    data = pd.read_csv(file)
+
     
     # Combine RMS values from both datasets
-    combined_left = pd.concat([small_data['RMS_left'], big_data['RMS_left']])
-    combined_right = pd.concat([small_data['RMS_right'], big_data['RMS_right']])
+    left = pd.concat([data['RMS_left'], data['RMS_left']])
+    right = pd.concat([data['RMS_right'], data['RMS_right']])
     
     # Calculate global min and max
-    global_min = min(combined_left.min(), combined_right.min())
-    global_max = max(combined_left.max(), combined_right.max())
+    global_min = min(left.min(), right.min())
+    global_max = max(left.max(), right.max())
     
     return global_min, global_max
 
@@ -99,11 +100,11 @@ def create_features(file_name,output_repo,EMG_repo):
     return output_file
 
 
-def normalise_rms_values(file_name, global_min, global_max):
+def normalise_rms_values(emg_file_name,file_name, output_repo, global_min, global_max):
         file_name = pd.read_csv(file_name)
         file_name['Normalised_RMS_left'] = normalise_with_global_range(file_name['RMS_left'], global_min, global_max)
         file_name['Normalised_RMS_right'] = normalise_with_global_range(file_name['RMS_right'], global_min, global_max)
-        file_name.to_csv(emg_file_small_filtered, index=False)
+        file_name.to_csv(f'{output_repo}/{emg_file_name}_filtered_normalised.csv', index=False)
 
 
 def plot_combined_rms(file_small, file_big, crop_start=None, crop_end=None,labels=['Small Handle','Big Handle']):
@@ -156,53 +157,58 @@ Participant_numbers = [1]  # List of participant numbers to process
 EMG_repo = 'EMG_data/'
 output_repo='EMG_data/Filtered/'
 
+base_dir = "E:/Rowing_Dataset/"  # Change this to your desired location
+Trial_names=['High1']
 
 
+##FILTERING##
+# for Participant_number in Participant_numbers:
+#     for trial in Trial_names:
+#         emg_file_name=f'{base_dir}Participant_{Participant_number}/P{Participant_number}_{trial}'
+#         process_text_file(emg_file_name)
+#         EMG_repo=f'{base_dir}Participant_{Participant_number}/'
+#         output_repo=f'{base_dir}Participant_{Participant_number}/Filtered_EMG/'
+#         emg_file=os.path.join(f'{emg_file_name}.csv')
+#         emg_file_filtered=create_features(emg_file,
+#                                           output_repo,EMG_repo)
+        # global_min,global_max=calculate_global_min_max(emg_file_filtered)
+        # normalise_rms_values(emg_file_name,emg_file_filtered,output_repo,global_min, global_max)
+
+
+##PLOTTING##
 for Participant_number in Participant_numbers:
-    # Paths for small and big EMG files
+    for trial in Trial_names:
+        for arm in ['right','left']:
+            EMG_repo=f'{base_dir}Participant_{Participant_number}/Filtered_EMG/'
+            emg_file_filtered=os.path.join(f'{EMG_repo}P{Participant_number}_{trial}.csv')   
+            df=pd.read_csv(emg_file_filtered)
+            plt.plot(df['Time'],df['RMS_left'])
+            df['Trim start']=1.75
+            df['Trim end']=62.30
+            df=df[df['Time']>df['Trim start']]
+            df=df[df['Time']<df['Trim end']]
+            plt.plot(df['Time'],df[f'RMS_{arm}'])
 
-    # for trial in list(range(1,6)):
-    #     process_text_file(os.path.join(EMG_repo, f'Participant_{Participant_number}_Trial_{trial}_Small'))
-    #     process_text_file(os.path.join(EMG_repo, f'Participant_{Participant_number}_Trial_{trial}_Big'))
+            troughs, properties = find_peaks(-df[f'RMS_{arm}'],
+                                            prominence=8,  # Adjust this threshold
+                                            distance=800)     # Minimum samples between troughs
 
-    #     emg_file_small = os.path.join(EMG_repo, f'Participant_{Participant_number}_Trial_{trial}_Small.csv')
-    #     emg_file_big = os.path.join(EMG_repo, f'Participant_{Participant_number}_Trial_{trial}_Big.csv')
+                # Plot
+            plt.figure(figsize=(12,6))
+            plt.plot(df['Time'], df[f'RMS_{arm}'], label=f'RMS_{arm}')
+                # Plot the troughs
+            plt.plot(df['Time'].iloc[troughs], df['RMS_left'].iloc[troughs], "x", label='Troughs')
+            trough_times = df['Time'].iloc[troughs]
+            trough_values = df['RMS_left'].iloc[troughs]
+            plt.show()
+
+            #found peaks, discard first 5 and last one
+            df=df[df['Time']<df['Time'].iloc[troughs[-1]]]
+            df=df[df['Time']>df['Time'].iloc[troughs[3]]]
+
+        #split up by peak
+
         
-        
-    #     emg_file_small_filtered=create_features(emg_file_small,output_repo,EMG_repo)
-    #     emg_file_big_filtered=create_features(emg_file_big,output_repo,EMG_repo)
-    #     # global_min,global_max=calculate_global_min_max(emg_file_small_filtered, emg_file_big_filtered)
-    #     # normalise_rms_values(emg_file_small_filtered, global_min, global_max)
-    #     # normalise_rms_values(emg_file_big_filtered, global_min, global_max)
-    #     # Normalise RMS values
 
-
-    emg_file_small_filtered = f'EMG_data/Filtered/Participant_{Participant_number}_Trial_1_Small.csv'
-    emg_file_big_filtered = f'EMG_data/Filtered/Participant_{Participant_number}_Trial_1_Big.csv'
-
-    emg_file_small_last=f'EMG_data/Filtered/Participant_{Participant_number}_Trial_5_Small.csv'
-    emg_file_big_last=f'EMG_data/Filtered/Participant_{Participant_number}_Trial_5_Big.csv'
-
-
-    #comparisons to make: trial 1 vs trial 5, for small and for big
-    #also small vs big (just pick one trial for each)
-
-    # Plot combined RMS for small and big datasets with cropping example
-    plot_combined_rms(
-        emg_file_small_last,
-        emg_file_big_last,crop_start=15,crop_end=60  # Example crop start time in seconds    # Example crop end time in seconds
-    )
-
-    # plot_combined_rms(
-    #     emg_file_small_filtered,
-    #     emg_file_small_last,crop_start=15,crop_end=60,labels=['Trial 1','Trial 5']  # Example crop start time in seconds    # Example crop end time in seconds
-    # )
-
-    # plot_combined_rms(
-    #     emg_file_big_filtered,
-    #     emg_file_big_last,crop_start=15,crop_end=60,labels=['Trial 1','Trial 5']  # Example crop start time in seconds    # Example crop end time in seconds
-    # )
-
-    
 
 

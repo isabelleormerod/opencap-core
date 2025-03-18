@@ -109,8 +109,8 @@ def filter_signals(columns, file_trial_IDs):
 
 def plot_comparisons(columns, file_trial_IDs,crop_start=None,crop_end=None):
 
-    small_data = pd.read_csv(f'{file_trial_IDs[0]}_filtered.csv')
-    big_data = pd.read_csv(f'{file_trial_IDs[1]}_filtered.csv')
+    small_data = pd.read_csv(f'{file_trial_IDs[0]}.csv')
+    big_data = pd.read_csv(f'{file_trial_IDs[1]}.csv')
 
     if crop_start is not None and crop_end is not None:
         small_data = small_data[(small_data['time'] >= crop_start) & (small_data['time'] <= crop_end)]
@@ -125,7 +125,6 @@ def plot_comparisons(columns, file_trial_IDs,crop_start=None,crop_end=None):
         plt.title(f'{column} Angle Comparison')
         plt.xlabel('Time (s)')
         plt.ylabel('Angle in degrees')
-        
         plt.legend(loc='upper right')
 
         # Plot Bicep RMS
@@ -267,11 +266,10 @@ for session_name in session_IDs:
 
 #'pelvis_rotation','pelvis_tilt','pelvis_list',
 
-        columns = ['arm_add_r','lumbar_bending']
+        columns = ['pelvis_list']
 
-        filter_signals(columns, [file_name_small, file_name_big])
 
-        plot_comparisons(columns, [file_name_small, file_name_big],10,59)
+        plot_comparisons(columns, [file_name_small, file_name_big],10,50)
 
         # columns=['X59','Y59','Z59']
         # cv_small,cv_big=plot_y_vel(columns, [trc_small, trc_big],10,59)

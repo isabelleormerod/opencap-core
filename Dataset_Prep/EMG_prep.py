@@ -107,58 +107,13 @@ def normalise_rms_values(emg_file_name,file_name, output_repo, global_min, globa
         file_name.to_csv(f'{output_repo}/{emg_file_name}_filtered_normalised.csv', index=False)
 
 
-def plot_combined_rms(file_small, file_big, crop_start=None, crop_end=None,labels=['Small Handle','Big Handle']):
-    """
-    Plot RMS of left and right for small and big datasets on separate graphs,
-    with optional cropping of the data.
-    """
-    small_data = pd.read_csv(file_small)
-    big_data = pd.read_csv(file_big)
-
-
-
-    # Apply cropping if specified
-    if crop_start is not None and crop_end is not None:
-        small_data = small_data[(small_data['Time'] >= crop_start) & (small_data['Time'] <= crop_end)]
-        big_data = big_data[(big_data['Time'] >= crop_start) & (big_data['Time'] <= crop_end)]
-
-    plt.figure(figsize=(8, 5))
-
-    # Plot left RMS
-    plt.subplot(2, 1, 1)
-    plt.plot(small_data['Time'], small_data['RMS_left'], label=labels[0], linestyle='--')
-    plt.plot(big_data['Time'], big_data['RMS_left'], label=labels[1])
-    plt.title('Shoulder Muscle Activation Comparison')
-    plt.xlabel('Time (s)')
-    plt.ylabel('RMS Amplitude')
-    plt.legend(loc='upper right')
-
-
-    # Plot right RMS
-    plt.subplot(2, 1, 2)
-    plt.plot(small_data['Time'], small_data['RMS_right'], label=labels[0], linestyle='--')
-    plt.plot(big_data['Time'], big_data['RMS_right'], label=labels[1])
-    plt.title('right Muscle Activation Comparison')
-    plt.xlabel('Time (s)')
-    plt.ylabel('RMS Amplitude')
-
-
-    plt.legend(loc='upper right')
-
-    plt.tight_layout()
-
-    #save picture in folder
-    plt.savefig(file_small.replace('.csv', f'_combined_rms.svg'))
-    plt.show()
-
-
 # Main processing loop
-Participant_numbers = [1]  # List of participant numbers to process
+Participant_numbers = [1,3,4,6,7,8,9]  # List of participant numbers to process
 EMG_repo = 'EMG_data/'
 output_repo='EMG_data/Filtered/'
 
 base_dir = "E:/Rowing_Dataset/"  # Change this to your desired location
-Trial_names=['High1']
+Trial_names=['High1','High2','Low1','Low2','Medium1','Medium2']
 
 
 ##FILTERING##
@@ -182,11 +137,11 @@ for Participant_number in Participant_numbers:
             EMG_repo=f'{base_dir}Participant_{Participant_number}/Filtered_EMG/'
             emg_file_filtered=os.path.join(f'{EMG_repo}P{Participant_number}_{trial}.csv')   
             df=pd.read_csv(emg_file_filtered)
-            plt.plot(df['Time'],df['RMS_left'])
-            df['Trim start']=1.75
-            df['Trim end']=62.30
-            df=df[df['Time']>df['Trim start']]
-            df=df[df['Time']<df['Trim end']]
+            plt.plot(df['Time'],df[f'RMS_{arm}'])
+            df['Trim start']=0
+            df['Trim end']=60.0
+          #  df=df[df['Time']>df['Trim start']]
+          #  df=df[df['Time']<df['Trim end']]
             plt.plot(df['Time'],df[f'RMS_{arm}'])
 
             troughs, properties = find_peaks(-df[f'RMS_{arm}'],
@@ -197,7 +152,7 @@ for Participant_number in Participant_numbers:
             plt.figure(figsize=(12,6))
             plt.plot(df['Time'], df[f'RMS_{arm}'], label=f'RMS_{arm}')
                 # Plot the troughs
-            plt.plot(df['Time'].iloc[troughs], df['RMS_left'].iloc[troughs], "x", label='Troughs')
+            plt.plot(df['Time'].iloc[troughs], df[f'RMS_{arm}'].iloc[troughs], "x", label='Troughs')
             trough_times = df['Time'].iloc[troughs]
             trough_values = df['RMS_left'].iloc[troughs]
             plt.show()
@@ -207,6 +162,35 @@ for Participant_number in Participant_numbers:
             df=df[df['Time']>df['Time'].iloc[troughs[3]]]
 
         #split up by peak
+        troughs, properties = find_peaks(-df[f'RMS_{arm}'],
+                                            prominence=8,  # Adjust this threshold
+                                            distance=800)
+        stroke_data = []
+
+        # Loop through troughs to create segments
+        for n in range(len(troughs)-1):
+            start_idx = troughs[n]
+            end_idx = troughs[n+1]
+
+            # Create dictionary for this stroke
+            stroke = {
+                'Stroke': n+1,
+                f'EMG_{arm}': df[f'RMS_{arm}'].iloc[start_idx:end_idx].values,
+                'Time': df['Time'].iloc[start_idx:end_idx].values
+            }
+
+            stroke_data.append(stroke)
+
+        # Convert to DataFrame
+        trough_info = pd.DataFrame(stroke_data)
+        print(trough_info)
+
+        #plot stroke 1
+        plt.plot(trough_info['Time'][0], trough_info[f'EMG_{arm}'][0])
+        trough_info.to_csv(f'{EMG_repo}P{Participant_number}_{trial}_{arm}_per_peak.csv', index=False)
+        plt.show()
+
+        
 
         
 
